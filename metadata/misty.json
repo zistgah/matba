@@ -24,9 +24,30 @@
   "license": "apache-2.0",
   "language": "eng",
   "related_identifiers": [
-    { "identifier": "10.5281/zenodo.21917807", "relation": "isSupplementTo", "scheme": "doi", "resource_type": "publication-book" },
-    { "identifier": "10.5281/zenodo.21928710", "relation": "isSupplementTo", "scheme": "doi", "resource_type": "publication-book" },
-    { "identifier": "10.5281/zenodo.21930508", "relation": "isSupplementTo", "scheme": "doi", "resource_type": "publication-book" },
-    { "identifier": "10.5281/zenodo.20719388", "relation": "references", "scheme": "doi", "resource_type": "software" }
-  ]
+    {
+      "identifier": "10.5281/zenodo.21917807",
+      "relation": "isSupplementTo",
+      "scheme": "doi",
+      "resource_type": "publication-book"
+    },
+    {
+      "identifier": "10.5281/zenodo.21928710",
+      "relation": "isSupplementTo",
+      "scheme": "doi",
+      "resource_type": "publication-book"
+    },
+    {
+      "identifier": "10.5281/zenodo.21930508",
+      "relation": "isSupplementTo",
+      "scheme": "doi",
+      "resource_type": "publication-book"
+    },
+    {
+      "identifier": "10.5281/zenodo.20719388",
+      "relation": "references",
+      "scheme": "doi",
+      "resource_type": "software"
+    }
+  ],
+  "doi": "10.5281/zenodo.21934021"
 }

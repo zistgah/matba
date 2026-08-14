@@ -1,0 +1,18 @@
+{
+  "tool": "misty-doi",
+  "state": "published",
+  "doi": "10.5281/zenodo.21934021",
+  "concept_doi": "10.5281/zenodo.21934020",
+  "record_url": "https://zenodo.org/record/21934021",
+  "deposition_id": 21934021,
+  "bucket": "https://zenodo.org/api/files/0fa0dd1b-6499-4f68-be5c-6e21466d6f9c",
+  "sandbox": false,
+  "files": [
+    {
+      "name": "matba-20260814T120822Z.tar.gz",
+      "size": 34037,
+      "sha256": "c5bee34b634ea9ba23ab822127598430d0d4bddb546a2d1efa06eaf88d041935"
+    }
+  ],
+  "generated_at": "2026-08-14T12:08:44+00:00"
+}
