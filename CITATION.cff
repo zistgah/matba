@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: If you use matba, please cite it.
+title: "matba: a single-file press for poster-derived books, from intake to DOI"
+authors:
+  - family-names: Choudhary
+    given-names: Abhishek
+    affiliation: AyeAI
+    orcid: "https://orcid.org/0009-0002-0684-8320"
+license: Apache-2.0
+repository-code: "https://github.com/zistgah/matba"
+type: software

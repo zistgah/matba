@@ -1,0 +1,9 @@
+{
+  "protocol": "candor/v1",
+  "utc": "20260814T120723Z",
+  "operation": "seed_matba.sh 1.0.0",
+  "repo": "zistgah/matba",
+  "intent": "seed matba 1.0.0",
+  "selftest": "passed",
+  "agent": "Claude Opus 4.8"
+}

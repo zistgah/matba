@@ -1,0 +1,7 @@
+logs/
+matba-projects/
+doi-package/
+*.tar
+*.tar.gz
+__pycache__/
+mt.*/
