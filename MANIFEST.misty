@@ -1,18 +1,18 @@
 {
   "tool": "misty-doi",
   "state": "published",
-  "doi": "10.5281/zenodo.21934021",
-  "concept_doi": "10.5281/zenodo.21934020",
-  "record_url": "https://zenodo.org/record/21934021",
-  "deposition_id": 21934021,
-  "bucket": "https://zenodo.org/api/files/0fa0dd1b-6499-4f68-be5c-6e21466d6f9c",
+  "doi": "10.5281/zenodo.21948734",
+  "concept_doi": "10.5281/zenodo.21948733",
+  "record_url": "https://zenodo.org/record/21948734",
+  "deposition_id": 21948734,
+  "bucket": "https://zenodo.org/api/files/c37d105a-f6bb-4866-b254-8f328a3f83d3",
   "sandbox": false,
   "files": [
     {
-      "name": "matba-20260814T120822Z.tar.gz",
-      "size": 34037,
-      "sha256": "c5bee34b634ea9ba23ab822127598430d0d4bddb546a2d1efa06eaf88d041935"
+      "name": "matba-20260815T123844Z.tar.gz",
+      "size": 67477,
+      "sha256": "1a7d2bcfe929b7a9a6353dd7bc793098c8be636eea927fa1f26f8722e56f4d40"
     }
   ],
-  "generated_at": "2026-08-14T12:08:44+00:00"
+  "generated_at": "2026-08-15T12:39:07+00:00"
 }

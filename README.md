@@ -1,5 +1,8 @@
 # matba (مطبع) — the press
 
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21948734.svg)](https://doi.org/10.5281/zenodo.21948734)
+
 One tool for the whole path: **posters in → book out, sealed, pushed, minted.**
 Local-first, single file, **stdlib only**. No install, no dependencies, no backend.
 
