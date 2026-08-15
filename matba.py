@@ -396,6 +396,40 @@ def cmd_intake(slug, src):
     return {"added": added, "duplicates": dupes, "total": len(prj["plates"])}
 
 
+def cmd_import(slug, zip_path):
+    """Bring a payload exported by the composing room back into a local project."""
+    import zipfile
+    prj = load(slug) if os.path.exists(os.path.join(pdir(slug), "project.json")) else None
+    d = pdir(slug)
+    with zipfile.ZipFile(zip_path) as z:
+        names = z.namelist()
+        if "project.json" not in names:
+            raise SystemExit("not a composing-room payload: project.json is missing")
+        t = json.loads(z.read("project.json"))
+        if prj is None:
+            prj = cmd_new(slug, t.get("title") or slug, t.get("subtitle", ""), t.get("repo"))
+        for k in ("title", "subtitle", "repo", "author", "affiliation", "orcid", "license",
+                  "description", "keywords", "related", "plate_note", "parts", "plates"):
+            if t.get(k) not in (None, "", []):
+                prj[k] = t[k]
+        save(prj)
+        os.makedirs(os.path.join(d, "posters"), exist_ok=True)
+        n = 0
+        for nm in names:
+            if nm.startswith("payload/posters/") and not nm.endswith("/"):
+                open(os.path.join(d, "posters", os.path.basename(nm)), "wb").write(z.read(nm)); n += 1
+    # the exported posters are named by slug; the plate table refers to original filenames
+    ren = 0
+    for pl in prj["plates"]:
+        want = os.path.join(d, "posters", pl["file"])
+        have = os.path.join(d, "posters", ("cover" if pl.get("cover") else (pl.get("imageName") or pl["slug"])) + ".png")
+        if not os.path.exists(want) and os.path.exists(have):
+            shutil.copy2(have, want); ren += 1
+    save(prj)
+    return {"slug": slug, "plates": len(prj["plates"]), "posters": n, "linked": ren,
+            "doctor": doctor(prj)}
+
+
 def cmd_bulk(slug, tsv):
     """slug-or-filename <TAB> title <TAB> subtitle <TAB> part <TAB> topics(;) [<TAB> lead <TAB> explanation]"""
     prj = load(slug); by = {}
@@ -573,6 +607,292 @@ def cmd_run(slug, stage, word=None, override=False, cwd=None):
     return p
 
 
+# ─────────────────────────────────────────────────────────── the landing page
+
+CHECKS = [
+    ("Duplicate bytes", "Two plates with identical content hashes.",
+     "The same plate minted twice under two names."),
+    ("Duplicate slug", "Two plates resolving to one chapter file.",
+     "One chapter silently overwriting another."),
+    ("Missing cover", "No plate marked as the jacket.",
+     "A book that renders with a chapter as its face."),
+    ("Cover is a chapter", "The jacket also listed as content.",
+     "A wraparound jacket counted and read as chapter one."),
+    ("Undeclared figure", "A file in assets/figures that no chapter declares.",
+     "Five template placeholder files reached zenodo.21917807."),
+    ("Stale book name", "The generated seeder still naming its parent.",
+     "A derived book announcing the title it was copied from."),
+    ("Empty description", "No abstract for the deposit.",
+     "A permanent Zenodo record with a blank abstract."),
+    ("Vendor name", "A product name in a title, slug or metadata.",
+     "A trademark set permanently into a published title."),
+]
+
+STAGES = [
+    ("Stage", "matba run SLUG stage",
+     "Clones the template, lays the plates in, runs every check.",
+     "Writes nothing to the forge. Nothing to Zenodo. Nothing above your working directory."),
+    ("Push", "matba run SLUG push",
+     "Creates the repository if it is absent, seals a manifest, pushes, verifies, turns on Pages.",
+     "Will not report success on a push that did not land: it reads the remote back and dies unless it matches."),
+    ("Mint", "matba run SLUG mint",
+     "Timestamps the artefact, mints through Zenodo, records the DOI back, re-seals, pushes again.",
+     "Will not invent a DOI. If the publisher returns none, it stops rather than write a plausible one."),
+]
+
+MADE = [
+    ("The Dukedom of Humanesque", "10.5281/zenodo.21917807"),
+    ("The Paradox of Innovation", "10.5281/zenodo.21928710"),
+    ("The Dukedom of Humanesque, Volume II", "10.5281/zenodo.21930508"),
+]
+
+
+def landing(repo="zistgah/matba", branch="main", doi=None):
+    """The site. No fonts fetched, no scripts loaded, no analytics. One file."""
+    e = lambda t: (t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+    raw = "https://raw.githubusercontent.com/%s/%s/matba.py" % (repo, branch)
+    chase = "\n".join(
+        '      <button class=plate type=button aria-expanded=false onclick="lift(this)">'
+        '<span class=plate-n>%02d</span><span class=plate-t>%s</span>'
+        '<span class=plate-w>%s</span><span class=plate-b>%s</span></button>'
+        % (i + 1, e(t), e(w), e(b)) for i, (t, w, b) in enumerate(CHECKS))
+    stages = "\n".join(
+        '    <li class=stage><h3>%s</h3><code>%s</code><p>%s</p><p class=refuse>%s</p></li>'
+        % (e(n), e(c), e(d), e(r)) for n, c, d, r in STAGES)
+    made = "\n".join(
+        '      <li><span class=made-t>%s</span>'
+        '<a class=mono href="https://doi.org/%s">%s</a></li>' % (e(t), d, d) for t, d in MADE)
+    badge = ('<a class=doi href="https://doi.org/%s">%s</a>' % (doi, doi)) if doi else \
+            '<span class=doi>not yet minted</span>'
+    return """<!doctype html>
+<html lang=en><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>matba — the press</title>
+<meta name=description content="A single file that takes a folder of poster plates and returns a
+published book: checked, sealed, timestamped, and minted with a DOI.">
+<style>
+:root{
+  --press:#14110e;      /* pressroom dark: warm, not blue-black */
+  --paper:#e8e2d4;      /* laid paper */
+  --ink:#0e0c0a;
+  --vermilion:#b3391f;  /* the second colour on a two-colour press */
+  --brass:#9a7b3f;      /* quoins and furniture */
+  --dim:rgba(232,226,212,.55);
+  --rule:rgba(232,226,212,.14);
+  --disp:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --body:Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--press);color:var(--paper);font:17px/1.65 var(--body);
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:70rem;margin:0 auto;padding:0 1.5rem}
+a{color:var(--paper);text-underline-offset:.22em;text-decoration-color:var(--vermilion)}
+a:hover{color:#fff}
+.mono{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--vermilion);outline-offset:3px}
+
+/* ── specimen hero: the wordmark set the way a foundry shows a face ── */
+.hero{padding:5rem 0 4rem;border-bottom:1px solid var(--rule)}
+.spec{display:flex;align-items:flex-end;gap:1.4rem;flex-wrap:wrap;margin:0 0 .3rem}
+.mark{font-family:var(--disp);font-size:clamp(4.5rem,17vw,11rem);line-height:.78;
+  letter-spacing:-.055em;margin:0;font-weight:400;color:var(--paper)}
+.mark b{font-weight:400;color:var(--vermilion)}
+.arab{font-size:clamp(1.6rem,5vw,3rem);color:var(--brass);line-height:1;
+  padding-bottom:.7rem;letter-spacing:.04em}
+.specline{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:baseline;
+  border-top:1px solid var(--rule);padding-top:.75rem;margin-top:1.4rem;
+  font:500 .68rem/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.specline .doi{color:var(--brass);text-transform:none;letter-spacing:.04em}
+.lede{font-size:clamp(1.25rem,2.7vw,1.75rem);line-height:1.35;max-width:30ch;margin:2.2rem 0 0;
+  font-family:var(--disp)}
+.lede em{font-style:normal;color:var(--vermilion)}
+.sub{color:var(--dim);max-width:46ch;margin:1rem 0 2.2rem;font-size:1.02rem}
+pre.cmd{background:#0b0908;border:1px solid var(--rule);border-left:3px solid var(--vermilion);
+  padding:1.1rem 1.25rem;overflow-x:auto;font:14px/1.9 var(--mono);margin:0;color:var(--paper)}
+pre.cmd .p{color:var(--vermilion);user-select:none}
+pre.cmd .c{color:var(--dim)}
+
+/* ── the chase: the signature. Plates lock into a forme; the quoin holds them. ── */
+section{padding:4.5rem 0;border-bottom:1px solid var(--rule)}
+.eyebrow{font:600 .68rem/1 var(--mono);letter-spacing:.26em;text-transform:uppercase;
+  color:var(--vermilion);margin:0 0 .9rem}
+h2{font-family:var(--disp);font-size:clamp(1.9rem,4vw,2.9rem);font-weight:400;letter-spacing:-.02em;
+  margin:0 0 .7rem;line-height:1.05}
+.say{color:var(--dim);max-width:56ch;margin:0 0 2.4rem}
+.chase{display:grid;grid-template-columns:1fr auto;gap:1.2rem;align-items:stretch}
+.forme{border:2px solid var(--brass);padding:.85rem;display:grid;gap:.55rem;
+  grid-template-columns:repeat(auto-fit,minmax(11.5rem,1fr));background:
+  repeating-linear-gradient(45deg,transparent,transparent 9px,rgba(154,123,63,.05) 9px,rgba(154,123,63,.05) 10px)}
+.plate{position:relative;text-align:left;background:#0b0908;border:1px solid var(--rule);
+  color:var(--paper);padding:.85rem .9rem 1rem;cursor:pointer;font:inherit;display:block;
+  transform:translateY(-9px);opacity:0;animation:drop .5s cubic-bezier(.2,.8,.3,1) forwards}
+.forme .plate:nth-child(1){animation-delay:.05s}.forme .plate:nth-child(2){animation-delay:.11s}
+.forme .plate:nth-child(3){animation-delay:.17s}.forme .plate:nth-child(4){animation-delay:.23s}
+.forme .plate:nth-child(5){animation-delay:.29s}.forme .plate:nth-child(6){animation-delay:.35s}
+.forme .plate:nth-child(7){animation-delay:.41s}.forme .plate:nth-child(8){animation-delay:.47s}
+@keyframes drop{to{transform:translateY(0);opacity:1}}
+.plate:hover{border-color:var(--brass)}
+.plate[aria-expanded=true]{border-color:var(--vermilion);background:#100b09}
+.plate-n{display:block;font:600 .62rem/1 var(--mono);letter-spacing:.18em;color:var(--brass);
+  margin-bottom:.45rem}
+.plate-t{display:block;font-family:var(--disp);font-size:1.02rem;line-height:1.2;margin-bottom:.3rem}
+.plate-w{display:block;font-size:.83rem;color:var(--dim);line-height:1.45}
+.plate-b{display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--rule);
+  font:.79rem/1.5 var(--mono);color:var(--vermilion)}
+.plate[aria-expanded=true] .plate-b{display:block}
+.quoin{border:2px solid var(--brass);border-left:none;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;gap:.5rem;padding:1rem .9rem;min-width:7.5rem;
+  background:rgba(154,123,63,.07)}
+.quoin b{writing-mode:vertical-rl;transform:rotate(180deg);font:600 .7rem/1 var(--mono);
+  letter-spacing:.32em;text-transform:uppercase;color:var(--brass)}
+.quoin .lk{font:600 .62rem/1.4 var(--mono);letter-spacing:.14em;color:var(--vermilion);
+  text-align:center;text-transform:uppercase}
+.locked{margin-top:1.5rem;font:.86rem/1.6 var(--mono);color:var(--dim);
+  border-left:2px solid var(--vermilion);padding-left:1rem;max-width:60ch}
+
+/* ── impression: three stages, each with what it refuses ── */
+ol.stages{list-style:none;padding:0;margin:0;display:grid;gap:1px;background:var(--rule);
+  border:1px solid var(--rule)}
+.stage{background:var(--press);padding:1.6rem 1.5rem}
+.stage h3{font-family:var(--disp);font-weight:400;font-size:1.45rem;margin:0 0 .5rem}
+.stage code{display:inline-block;font:13px/1 var(--mono);color:var(--brass);
+  border:1px solid var(--rule);padding:.35rem .6rem;margin-bottom:.8rem}
+.stage p{margin:0 0 .55rem;max-width:60ch}
+.refuse{color:var(--dim);font-size:.92rem;border-left:2px solid var(--vermilion);padding-left:.85rem}
+@media(min-width:52rem){ol.stages{grid-template-columns:repeat(3,1fr)}}
+
+/* ── made with it ── */
+ul.made{list-style:none;padding:0;margin:0;display:grid;gap:0}
+ul.made li{display:flex;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;
+  padding:.95rem 0;border-bottom:1px solid var(--rule)}
+.made-t{font-family:var(--disp);font-size:1.1rem}
+ul.made a{font-size:.86rem;color:var(--brass)}
+
+.grid2{display:grid;gap:2.5rem}
+@media(min-width:52rem){.grid2{grid-template-columns:1fr 1fr}}
+dl{margin:0}dt{font:600 .68rem/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--vermilion);margin:1.4rem 0 .4rem}dt:first-child{margin-top:0}
+dd{margin:0;color:var(--dim);max-width:52ch}
+footer{padding:3rem 0 4rem;color:var(--dim);font-size:.86rem}
+footer .kv{color:var(--brass);font-style:italic}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}
+  .plate{transform:none;opacity:1}}
+</style></head><body>
+
+<header class=hero><div class=wrap>
+  <div class=spec>
+    <h1 class=mark>mat<b>b</b>a</h1>
+    <span class=arab>&#1605;&#1591;&#1576;&#1593;</span>
+  </div>
+  <div class=specline><span>the press</span><span>v""" + VERSION + """</span>
+    <span>python 3 &middot; standard library only</span>""" + badge + """</div>
+  <p class=lede>A folder of plates goes in. A <em>published book</em> comes out.</p>
+  <p class=sub>Checked, sealed, timestamped and minted with a DOI &mdash; by one file, on your own
+     machine, with your own tokens. Nothing is uploaded until you type the word.</p>
+  <pre class=cmd><span class=p>$</span> curl -O """ + raw + """
+<span class=p>$</span> python3 matba.py serve      <span class=c># http://127.0.0.1:8710</span></pre>
+  <p class=sub style="margin:1.6rem 0 0">Or set a book here, now, with nothing installed:
+    <a href="studio.html"><b>open the composing room</b></a> &mdash; it runs in this tab, hashes your
+    plates in the browser, and exports a payload the press can set.</p>
+</div></header>
+
+<section id=chase><div class=wrap>
+  <p class=eyebrow>The chase</p>
+  <h2>It will not print on a broken forme.</h2>
+  <p class=say>On a press, plates are locked into a chase before anything is printed; if the lockup
+    is wrong, you do not take the impression. These eight checks are matba's lockup. Every one of
+    them is here because that exact defect once reached a permanent record. Open a plate to read
+    which.</p>
+  <div class=chase>
+    <div class=forme>
+""" + chase + """
+    </div>
+    <div class=quoin><b>Quoin</b><span class=lk id=lk>Forme<br>locked</span></div>
+  </div>
+  <p class=locked>doctor exits 1 on any failure, and build refuses to run. You cannot reach the
+    forge, and you certainly cannot reach a DOI, on input that fails here.</p>
+</div></section>
+
+<section id=impression><div class=wrap>
+  <p class=eyebrow>The impression</p>
+  <h2>Three stages, and what each one will not do.</h2>
+  <p class=say>Every button in the local interface is one of these commands, so anything you can
+    click you can script. Push and mint each ask for a word typed exactly; a mismatch exits 3 and
+    records nothing.</p>
+  <ol class=stages>
+""" + stages + """
+  </ol>
+</div></section>
+
+<section id=how><div class=wrap>
+  <p class=eyebrow>Setting the book</p>
+  <h2>Six commands, start to finish.</h2>
+  <pre class=cmd><span class=p>$</span> matba new geometry --title "The Geometry of X" --repo you/geometry
+<span class=p>$</span> matba intake geometry ~/plates          <span class=c># hashes once, refuses duplicate bytes</span>
+<span class=p>$</span> matba bulk   geometry rows.tsv          <span class=c># file &#8677; title &#8677; subtitle &#8677; part &#8677; topics &#8677; lead</span>
+<span class=p>$</span> matba set    geometry cover.png --cover
+<span class=p>$</span> matba doctor geometry                   <span class=c># exits 1 on any failure</span>
+<span class=p>$</span> matba build  geometry                   <span class=c># payload, seeder, tarball</span></pre>
+  <div class=grid2 style="margin-top:2.5rem">
+    <dl>
+      <dt>Where things live</dt>
+      <dd><span class=mono>MATBA_HOME</span> holds one directory per book. Nothing is written
+        outside your working directory.</dd>
+      <dt>Tokens</dt>
+      <dd>Read from a file by path, never inlined, never in a flag, never in a commit. Set
+        <span class=mono>ZENODO_TOKEN_PATH</span>.</dd>
+      <dt>In Colab</dt>
+      <dd>The notebook runs the same engine with no local server. Mount Drive, point at a folder,
+        fill the plate table, type the gate words.</dd>
+    </dl>
+    <dl>
+      <dt>What it drives</dt>
+      <dd>git, the forge client, the DOI client, and a book template. It reimplements none of them,
+        and it reads a tool's interface at run time rather than assuming a remembered one.</dd>
+      <dt>One engine</dt>
+      <dd>matba emits a single generic seeder, parameterised per book. It exists because three books
+        were once published by three copies of one script, each inheriting the last one's defects.</dd>
+      <dt>The composing room</dt>
+      <dd>A static page: drop plates, sort them, let the cycler write descriptions with whichever AI
+        you use, split one plate into several chapters, attach exercises, export.
+        <a href="studio.html">Open it</a> &mdash; no install, no account, no key.</dd>
+      <dt>Reuse</dt>
+      <dd>Start a book from one you already made: parts, keywords, related identifiers and the
+        author block come across. Then retrieve the live state of any book, whenever you want it.</dd>
+    </dl>
+  </div>
+</div></section>
+
+<section id=made><div class=wrap>
+  <p class=eyebrow>Set with it</p>
+  <h2>Books this press has printed.</h2>
+  <p class=say>Each of these went from a folder of images to a public repository and a registered
+    DOI through the path above.</p>
+  <ul class=made>
+""" + made + """
+  </ul>
+</div></section>
+
+<footer><div class=wrap>
+  <p>Copyright &copy; 1993&ndash;2026 Abhishek Choudhary &middot; AyeAI &middot;
+     ORCID 0009-0002-0684-8320 &middot; Apache-2.0 &middot;
+     <a href="https://github.com/""" + repo + """">source</a></p>
+  <p class=kv>Kaivalyik Immutabilis &mdash; na chour haryam, na cha raaj haryam.</p>
+</div></footer>
+
+<script>
+function lift(b){
+  var open = b.getAttribute('aria-expanded') === 'true';
+  document.querySelectorAll('.plate').forEach(function(p){p.setAttribute('aria-expanded','false')});
+  b.setAttribute('aria-expanded', open ? 'false' : 'true');
+  document.getElementById('lk').innerHTML = open ? 'Forme<br>locked' : 'Plate<br>lifted';
+}
+</script>
+</body></html>"""
+
+
 # ─────────────────────────────────────────────────────────── web UI
 
 PAGE = """<!doctype html><html lang=en><head><meta charset=utf-8>
@@ -615,7 +935,11 @@ ul.d{margin:.4rem 0;padding-left:1.1rem}ul.d li{color:var(--bad);font-size:.88re
 color:rgba(251,246,233,.75)}
 </style></head><body><div class=wrap>
 <header><h1>matba</h1><span class=eyebrow id=ver></span>
-<span style="flex:1"></span><select id=proj style="width:auto"></select>
+<span style="flex:1"></span>
+<a href="/studio" target=_blank style="color:var(--acc);font:600 .7rem/1 ui-monospace,Menlo,monospace;
+letter-spacing:.1em;text-transform:uppercase;text-decoration:none;border:1px solid var(--rule);
+padding:.6rem 1rem">Composing room</a>
+<select id=proj style="width:auto"></select>
 <button class=ghost onclick=newProject()>New</button></header>
 <div id=app></div></div>
 <script>
@@ -761,6 +1085,16 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path); q = parse_qs(u.query)
         if u.path in ("/", "/index.html"):
             return self._send(PAGE, ctype="text/html; charset=utf-8")
+        if u.path in ("/studio", "/studio.html", "/docs/studio.html"):
+            f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "studio.html")
+            if os.path.exists(f):
+                return self._send(open(f, "rb").read(), ctype="text/html; charset=utf-8")
+            return self._send("<p>docs/studio.html is not beside matba.py.</p>", 404, "text/html")
+        if u.path == "/js/studio.js" or u.path == "/docs/js/studio.js":
+            f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "js", "studio.js")
+            if os.path.exists(f):
+                return self._send(open(f, "rb").read(), ctype="text/javascript; charset=utf-8")
+            return self._send("// not found", 404, "text/javascript")
         if u.path == "/api/projects":
             return self._send({"version": VERSION, "home": HOME, "projects": projects()})
         if u.path == "/api/project":
@@ -821,6 +1155,14 @@ def main(argv):
     if len(argv) < 2:
         print(__doc__); return 0
     c = argv[1]
+    if c == "landing":
+        d = argv[2]
+        repo = argv[argv.index("--repo") + 1] if "--repo" in argv else "zistgah/matba"
+        doi = argv[argv.index("--doi") + 1] if "--doi" in argv else None
+        os.makedirs(os.path.join(d, "docs"), exist_ok=True)
+        open(os.path.join(d, "docs", "index.html"), "w").write(landing(repo, doi=doi))
+        print("docs/index.html written (%d bytes)" % os.path.getsize(os.path.join(d, "docs", "index.html")))
+        return 0
     if c == "serve":
         return serve(int(argv[2]) if len(argv) > 2 else 8710)
     if c == "new":
@@ -830,6 +1172,8 @@ def main(argv):
         print(json.dumps(cmd_new(argv[2], t, s, r), indent=2)); return 0
     if c == "intake":
         print(json.dumps(cmd_intake(argv[2], argv[3]), indent=2)); return 0
+    if c == "import":
+        print(json.dumps(cmd_import(argv[2], argv[3]), indent=2)); return 0
     if c == "bulk":
         tsv = open(argv[3]).read() if len(argv) > 3 else sys.stdin.read()
         print("%d rows matched" % cmd_bulk(argv[2], tsv)); return 0

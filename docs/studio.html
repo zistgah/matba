@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang=en><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>The composing room — matba</title>
+<style>
+:root{--press:#14110e;--paper:#e8e2d4;--vermilion:#b3391f;--brass:#9a7b3f;
+--dim:rgba(232,226,212,.55);--rule:rgba(232,226,212,.14);--ok:#7fa86b;
+--disp:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+--body:Georgia,"Times New Roman",serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--press);color:var(--paper);font:16px/1.6 var(--body)}
+.wrap{max-width:78rem;margin:0 auto;padding:1.5rem 1.25rem 6rem}
+a{color:var(--brass)}
+:focus-visible{outline:2px solid var(--vermilion);outline-offset:3px}
+.mono{font-family:var(--mono)}
+header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding-bottom:1rem;
+border-bottom:1px solid var(--rule);margin-bottom:1.5rem}
+h1{font-family:var(--disp);font-size:1.9rem;font-weight:400;margin:0;letter-spacing:-.02em}
+h1 b{font-weight:400;color:var(--vermilion)}
+.eyebrow{font:600 .64rem/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--brass)}
+h2{font-family:var(--disp);font-size:1.25rem;font-weight:400;margin:2.2rem 0 .7rem;
+padding-bottom:.4rem;border-bottom:1px solid var(--rule);color:var(--paper)}
+h2 .n{font:600 .62rem/1 var(--mono);letter-spacing:.2em;color:var(--vermilion);
+text-transform:uppercase;margin-right:.7rem;vertical-align:.22em}
+button,input,textarea,select{font:inherit;color:inherit;background:transparent;
+border:1px solid var(--rule);padding:.45rem .65rem;border-radius:0}
+input,textarea,select{width:100%;background:rgba(255,255,255,.03)}
+textarea{font:13px/1.55 var(--mono);resize:vertical}
+button{cursor:pointer;background:var(--vermilion);color:#fff;border:none;
+font:600 .7rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:.65rem 1.05rem}
+button:hover{filter:brightness(1.12)}
+button.ghost{background:transparent;color:var(--brass);border:1px solid var(--rule)}
+button.ghost:hover{border-color:var(--brass);filter:none}
+button:disabled{opacity:.3;cursor:not-allowed}
+label{display:block;font:.64rem/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+color:var(--dim);margin:0 0 .25rem}
+.row{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))}
+.bar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.9rem 0}
+/* drop zone */
+#drop{border:2px dashed var(--rule);padding:2.4rem 1.5rem;text-align:center;transition:.15s;
+background:repeating-linear-gradient(45deg,transparent,transparent 9px,rgba(154,123,63,.04) 9px,rgba(154,123,63,.04) 10px)}
+#drop.over{border-color:var(--vermilion);background:rgba(179,57,31,.08)}
+#drop p{margin:.3rem 0;color:var(--dim)}
+#drop b{display:block;font-family:var(--disp);font-size:1.3rem;color:var(--paper);font-weight:400}
+/* plates */
+.forme{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));
+border:2px solid var(--brass);padding:.7rem;margin-top:1rem}
+.plate{background:#0b0908;border:1px solid var(--rule);padding:.6rem;display:flex;flex-direction:column;gap:.4rem}
+.plate.iscover{border-color:var(--vermilion)}
+.plate img{width:100%;height:8rem;object-fit:contain;background:#000;display:block}
+.plate .hash{font:.62rem/1 var(--mono);color:var(--brass);letter-spacing:.04em}
+.plate .aka{font:.62rem/1.4 var(--mono);color:var(--dim)}
+.plate .fill{display:flex;gap:.3rem;font:.6rem/1 var(--mono);letter-spacing:.1em}
+.plate .fill span{padding:.22rem .35rem;border:1px solid var(--rule);color:var(--dim)}
+.plate .fill span.on{color:var(--ok);border-color:rgba(127,168,107,.4)}
+.plate textarea{min-height:3.4rem}
+.mini{display:flex;gap:.35rem;align-items:center}
+.mini button{padding:.35rem .55rem;font-size:.6rem}
+/* cycler */
+.cyc{border:1px solid var(--rule);border-left:3px solid var(--vermilion);padding:1.2rem;margin-top:1rem}
+.cyc .who{font:600 .64rem/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:.5rem}
+.cyc h3{font-family:var(--disp);font-weight:400;font-size:1.3rem;margin:0 0 .3rem}
+.cyc .of{color:var(--dim);font-size:.88rem;margin:0 0 1rem}
+.steps{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.steps i{font-style:normal;font:.6rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+padding:.3rem .5rem;border:1px solid var(--rule);color:var(--dim)}
+.steps i.now{color:#fff;background:var(--vermilion);border-color:var(--vermilion)}
+.steps i.done{color:var(--ok);border-color:rgba(127,168,107,.4)}
+pre.pr{background:#0b0908;border:1px solid var(--rule);padding:.8rem;font:12px/1.55 var(--mono);
+max-height:13rem;overflow:auto;white-space:pre-wrap;margin:0 0 .7rem;color:var(--paper)}
+.msg{font:.82rem/1.5 var(--mono);margin:.6rem 0 0;color:var(--dim)}
+.msg.bad{color:#e8a3a3}.msg.good{color:var(--ok)}
+/* doctor */
+ul.d{margin:.3rem 0;padding-left:1.05rem}ul.d li{color:#e8a3a3;font-size:.9rem}
+.pass{color:var(--ok)}
+details{border:1px solid var(--rule);padding:.7rem .9rem;margin-top:.7rem}
+summary{cursor:pointer;font:600 .68rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+details[open] summary{margin-bottom:.8rem}
+.note{color:var(--dim);font-size:.9rem;max-width:62ch}
+table{width:100%;border-collapse:collapse;font-size:.86rem;margin-top:.5rem}
+th{text-align:left;font:600 .62rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
+color:var(--brass);padding:.4rem .3rem;border-bottom:1px solid var(--rule)}
+td{padding:.35rem .3rem;border-bottom:1px solid rgba(232,226,212,.07);vertical-align:top}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body><div class=wrap>
+
+<header>
+  <span class=eyebrow>&#1605;&#1591;&#1576;&#1593;</span>
+  <h1>The composing <b>room</b></h1>
+  <span style=flex:1></span>
+  <span class="mono" style="font-size:.72rem;color:var(--dim)" id=where>runs entirely in this tab</span>
+</header>
+
+<p class=note>Drop your plates, name them, let the cycler write the descriptions with whichever AI
+you use, then export a payload the press can set. Nothing leaves this tab: no upload, no account,
+no key required. Everything is kept in this browser until you export.</p>
+
+<h2><span class=n>One</span>The book</h2>
+<div class=row>
+  <div><label>title</label><input id=b_title placeholder="The Geometry of X"></div>
+  <div><label>subtitle</label><input id=b_subtitle></div>
+  <div><label>repository owner/name</label><input id=b_repo placeholder="you/geometry"></div>
+  <div><label>author</label><input id=b_author></div>
+  <div><label>affiliation</label><input id=b_affiliation></div>
+  <div><label>ORCID</label><input id=b_orcid></div>
+</div>
+<div style="margin-top:.7rem"><label>description &mdash; this becomes the deposit abstract</label>
+  <textarea id=b_description rows=3></textarea></div>
+
+<h2><span class=n>Two</span>The plates</h2>
+<div id=drop tabindex=0 role=button aria-label="Add plates">
+  <b>Drop images, a folder, or a zip</b>
+  <p>or <button class=ghost type=button id=pick>choose files</button></p>
+  <p class=mono style="font-size:.72rem">hashed here, in this tab &middot; identical bytes collapse onto one keeper</p>
+</div>
+<input type=file id=file multiple accept="image/*,.zip" hidden>
+<div class=bar>
+  <button class=ghost id=sortName>Sort by name</button>
+  <button class=ghost id=sortPart>Group by part</button>
+  <button class=ghost id=bulkT>Paste a table</button>
+  <span class=mono style="color:var(--dim)" id=count>no plates yet</span>
+</div>
+<details id=bulkbox><summary>Paste a table</summary>
+  <p class=note>One row per plate, tab or pipe separated:
+    <span class=mono>file &#8677; title &#8677; subtitle &#8677; part &#8677; topics(;) &#8677; lead &#8677; explanation</span></p>
+  <textarea id=bulk rows=5></textarea>
+  <div class=bar><button id=bulkGo>Apply the table</button></div>
+</details>
+<div class=forme id=forme></div>
+
+<h2><span class=n>Three</span>The cycler</h2>
+<p class=note>Copy the prompt, paste it into whichever AI you use with the plate image, copy the
+answer, come back and press <b>Apply and copy next</b>. One button does both: it files the answer
+and puts the following prompt on your clipboard.</p>
+<div class=cyc id=cyc></div>
+<details>
+  <summary>Call an endpoint instead</summary>
+  <p class=note>Optional. If you would rather not copy and paste, give an endpoint and your own key.
+    Both stay in this browser and are sent only to the address you enter. No provider is configured
+    or suggested; the request shape is yours to describe.</p>
+  <div class=row>
+    <div><label>endpoint url</label><input id=e_url placeholder="https://…"></div>
+    <div><label>your key</label><input id=e_key type=password></div>
+    <div><label>where the reply is</label><input id=e_replyPath placeholder="content.0.text"></div>
+  </div>
+  <div style="margin-top:.6rem"><label>request body &mdash; "{prompt}" is replaced</label>
+    <textarea id=e_bodyTemplate rows=2 placeholder='{"model":"…","messages":[{"role":"user","content":"{prompt}"}]}'></textarea></div>
+  <div class=bar><button class=ghost id=e_save>Save endpoint</button>
+    <span class=mono style="color:var(--dim)" id=e_msg></span></div>
+</details>
+
+<h2><span class=n>Four</span>Exercises</h2>
+<p class=note>Optional. Questions attached to a chapter, marked in the reader with no server. Choose
+a plate, add questions, and they travel with the book.</p>
+<div class=row>
+  <div><label>plate</label><select id=ex_plate></select></div>
+  <div><label>kind</label><select id=ex_kind>
+    <option value=mcq>Multiple choice</option>
+    <option value=cloze>Fill in the blank</option>
+    <option value=long>Long answer (marked by AI handoff)</option></select></div>
+</div>
+<div style="margin-top:.6rem"><label>question</label><input id=ex_q></div>
+<div class=row style="margin-top:.6rem">
+  <div><label>options, one per line (multiple choice)</label><textarea id=ex_opts rows=3></textarea></div>
+  <div><label>answer &mdash; the exact option, or the missing words</label><textarea id=ex_a rows=3></textarea></div>
+</div>
+<div class=bar><button id=ex_add>Add the question</button>
+  <span class=mono style="color:var(--dim)" id=ex_msg></span></div>
+<table id=ex_table></table>
+
+<h2><span class=n>Five</span>The lockup</h2>
+<div id=doc></div>
+<div class=bar>
+  <button id=exp disabled>Export payload</button>
+  <button class=ghost id=save>Save working file</button>
+  <button class=ghost id=load>Open working file</button>
+  <input type=file id=loadf accept=".json" hidden>
+</div>
+<p class=note id=next></p>
+
+</div>
+<script type=module>
+import * as S from './js/studio.js';
+
+const $ = s => document.querySelector(s);
+const st = { book: { author:'', affiliation:'', orcid:'', license:'CC-BY-SA-4.0' },
+             plates: [], parts: [], config: { vendorWords: [] } };
+const imgs = new Map();          // slug/file -> Uint8Array
+const urls = new Map();
+let endpoint = {};
+try { endpoint = JSON.parse(localStorage.getItem('matba.endpoint') || '{}'); } catch (e) {}
+try { Object.assign(endpoint, {}); } catch (e) {}
+
+/* book fields */
+for (const k of ['title','subtitle','repo','author','affiliation','orcid','description']) {
+  const el = $('#b_' + k); if (!el) continue;
+  el.value = st.book[k] || '';
+  el.addEventListener('input', () => { st.book[k] = el.value; paint(); });
+}
+for (const k of ['url','key','replyPath','bodyTemplate']) {
+  const el = $('#e_' + k); if (el) el.value = endpoint[k] || '';
+}
+$('#e_save').onclick = () => {
+  for (const k of ['url','key','replyPath','bodyTemplate']) endpoint[k] = $('#e_' + k).value.trim();
+  try { localStorage.setItem('matba.endpoint', JSON.stringify(endpoint)); $('#e_msg').textContent = 'saved in this browser only'; }
+  catch (e) { $('#e_msg').textContent = 'this browser will not store it — it still works for this session'; }
+};
+
+/* intake */
+const drop = $('#drop');
+['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', ev => take([...(ev.dataTransfer.files || [])]));
+drop.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#file').click(); } });
+$('#pick').onclick = () => $('#file').click();
+$('#file').onchange = e => take([...e.target.files]);
+
+async function take(files) {
+  const added = [];
+  for (const f of files) {
+    if (/\.zip$/i.test(f.name)) { msgDoc('Zip support needs the local press — drop the images instead.'); continue; }
+    if (!/^image\//.test(f.type)) continue;
+    const buf = await f.arrayBuffer(), h = await S.sha256(buf);
+    const bytes = new Uint8Array(buf);
+    added.push({ file: f.name, sha256: h, slug: S.slugify(f.name), title:'', subtitle:'',
+                 lead:'', explanation:'', topics: [], part:'', cover:false, exercises: [] });
+    imgs.set(f.name, bytes);
+    urls.set(f.name, URL.createObjectURL(new Blob([bytes], { type: f.type })));
+  }
+  const r = S.dedupe(st.plates.concat(added));
+  st.plates = r.plates;
+  if (r.duplicates.length)
+    msgDoc(r.duplicates.map(d => d.dropped + ' has the same bytes as ' + d.keeper).join(' · '));
+  if (!st.plates.some(p => p.cover) && st.plates.length) st.plates[0].cover = true;
+  paint();
+}
+
+/* plates */
+function paint() {
+  const f = $('#forme'); f.innerHTML = '';
+  st.plates.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'plate' + (p.cover ? ' iscover' : '');
+    const src = urls.get(p.file) || '';
+    el.innerHTML =
+      (src ? '<img alt="" src="' + src + '">' : '') +
+      '<span class=hash>' + p.sha256.slice(0, 12) + '</span>' +
+      (p.alsoKnownAs ? '<span class=aka>same bytes as ' + p.alsoKnownAs.join(', ') + '</span>' : '') +
+      (p.panel ? '<span class=aka>panel ' + p.panel + ' of ' + p.file + '</span>' : '');
+    const mk = (ph, key, tag) => { const n = document.createElement(tag || 'input');
+      n.placeholder = ph; n.value = p[key] || ''; n.oninput = () => { p[key] = n.value; touch(); }; return n; };
+    el.append(mk('title', 'title'), mk('part', 'part'), mk('slug', 'slug'));
+    const lead = mk('lead paragraph', 'lead', 'textarea'); el.append(lead);
+    const fill = document.createElement('div'); fill.className = 'fill';
+    for (const k of ['title','part','lead','explanation'])
+      fill.insertAdjacentHTML('beforeend', '<span class="' + (p[k] ? 'on' : '') + '">' + k.slice(0,4) + '</span>');
+    const mini = document.createElement('div'); mini.className = 'mini';
+    const cov = document.createElement('button'); cov.className = 'ghost'; cov.type = 'button';
+    cov.textContent = p.cover ? 'cover' : 'make cover';
+    cov.onclick = () => { st.plates.forEach(q => q.cover = false); p.cover = true; paint(); };
+    const up = document.createElement('button'); up.className='ghost'; up.type='button'; up.textContent='↑';
+    up.onclick = () => { if (i) { st.plates.splice(i-1,0,st.plates.splice(i,1)[0]); paint(); } };
+    const dn = document.createElement('button'); dn.className='ghost'; dn.type='button'; dn.textContent='↓';
+    dn.onclick = () => { if (i < st.plates.length-1) { st.plates.splice(i+1,0,st.plates.splice(i,1)[0]); paint(); } };
+    mini.append(cov, up, dn); el.append(fill, mini);
+    f.append(el);
+  });
+  $('#count').textContent = st.plates.length ? st.plates.length + ' plates · ' +
+    st.plates.filter(p => !p.cover).length + ' chapters' : 'no plates yet';
+  const sel = $('#ex_plate'); sel.innerHTML = '';
+  st.plates.filter(p => !p.cover).forEach((p, i) => {
+    const o = document.createElement('option'); o.value = String(i); o.textContent = p.title || p.file; sel.append(o); });
+  cycler(); check(); exTable();
+}
+function touch() { $('#count').textContent = st.plates.length + ' plates · ' +
+  st.plates.filter(p => !p.cover).length + ' chapters'; cycler(); check(); }
+
+$('#sortName').onclick = () => { st.plates.sort((a,b) => a.file.localeCompare(b.file, undefined, {numeric:true})); paint(); };
+$('#sortPart').onclick = () => { st.plates.sort((a,b) => (a.part||'~').localeCompare(b.part||'~') ||
+  a.file.localeCompare(b.file, undefined, {numeric:true})); paint(); };
+$('#bulkT').onclick = () => { const d = $('#bulkbox'); d.open = !d.open; };
+$('#bulkGo').onclick = () => {
+  const by = new Map(); st.plates.forEach(p => { by.set(p.file, p); by.set(p.slug, p);
+    by.set(p.file.replace(/\.[a-z0-9]+$/i,''), p); });
+  let n = 0;
+  for (const line of $('#bulk').value.split('\n')) {
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    const c = line.split(/\t|\s*\|\s*/).map(x => x.trim());
+    const p = by.get(c[0]); if (!p) continue; n++;
+    if (c[1]) p.title = c[1]; if (c[2]) p.subtitle = c[2]; if (c[3]) p.part = c[3];
+    if (c[4]) p.topics = c[4].split(';').map(x => x.trim()).filter(Boolean);
+    if (c[5]) p.lead = c[5]; if (c[6]) p.explanation = c[6];
+    if (p.title && p.slug === S.slugify(p.file)) p.slug = S.slugify(p.title);
+  }
+  msgDoc(n + ' rows matched'); paint();
+};
+
+/* cycler */
+let task = null;
+function cycler() {
+  const box = $('#cyc'); task = S.nextTask(st);
+  if (!task) {
+    box.innerHTML = '<div class=who>Cycler</div><h3>Nothing left to ask.</h3>' +
+      '<p class=of>Every chapter has a title, a part, a lead and an explanation, and the book has an abstract.</p>' +
+      '<div class=bar><button class=ghost id=cySplit>Split a plate into chapters</button></div>';
+    $('#cySplit').onclick = splitFlow; return;
+  }
+  const ctx = S.taskContext(st, task.plate);
+  const prompt = S.fillPrompt(task.step, ctx);
+  const done = S.DEFAULT_STEPS.filter(s => !s.optional).map(s =>
+    '<i class="' + (s.id === task.step.id ? 'now' : '') + '">' + s.title + '</i>').join('');
+  const left = st.plates.filter(p => !p.cover && !p[task.step.target] && task.step.target[0] !== '@').length;
+  box.innerHTML =
+    '<div class=who>Cycler</div><h3>' + task.step.title + '</h3>' +
+    '<p class=of>' + (task.plate ? (task.plate.title || task.plate.file) : 'the whole book') +
+      (left > 1 ? ' &middot; ' + left + ' plates still need this' : '') + '</p>' +
+    '<div class=steps>' + done + '</div>' +
+    '<pre class=pr id=prompt></pre>' +
+    '<label>paste the answer</label><textarea id=ans rows=4></textarea>' +
+    '<div class=bar><button id=go>Apply and copy next</button>' +
+    '<button class=ghost id=cp>Copy prompt again</button>' +
+    '<button class=ghost id=send>Send to endpoint</button>' +
+    '<button class=ghost id=skip>Skip this plate</button></div>' +
+    '<p class=msg id=cmsg></p>';
+  $('#prompt').textContent = prompt;
+  $('#cp').onclick = () => copy(prompt, 'prompt copied');
+  $('#skip').onclick = () => { if (task.plate) { task.plate[task.step.target] = task.plate[task.step.target] || '—'; paint(); } };
+  $('#send').onclick = async () => {
+    cmsg('calling the endpoint…');
+    try { $('#ans').value = await S.callEndpoint(endpoint, prompt, null); cmsg('answer received — check it, then apply', 'good'); }
+    catch (e) { cmsg(e.message, 'bad'); }
+  };
+  $('#go').onclick = () => {
+    const r = S.applyAnswer(st, task, $('#ans').value);
+    if (!r.ok) return cmsg(r.why, 'bad');
+    $('#ans').value = '';
+    paint();
+    const n = S.nextTask(st);
+    if (n) copy(S.fillPrompt(n.step, S.taskContext(st, n.plate)), 'filed · next prompt copied');
+    else cmsg('filed. Nothing left to ask.', 'good');
+  };
+}
+function splitFlow() {
+  const step = S.DEFAULT_STEPS.find(s => s.id === 'split');
+  const i = prompt('Which plate? Give its number in the forme (1 = first).');
+  const p = st.plates.filter(q => !q.cover)[Number(i) - 1];
+  if (!p) return;
+  task = { step, plate: p };
+  const q = S.fillPrompt(step, S.taskContext(st, p));
+  $('#cyc').innerHTML = '<div class=who>Cycler &middot; split</div><h3>Split into chapters</h3>' +
+    '<p class=of>' + (p.title || p.file) + '</p><pre class=pr></pre>' +
+    '<label>paste the JSON array</label><textarea id=ans rows=5></textarea>' +
+    '<div class=bar><button id=go>Apply</button><button class=ghost id=cp>Copy prompt</button>' +
+    '<button class=ghost id=cancel>Cancel</button></div><p class=msg id=cmsg></p>';
+  $('#cyc .pr').textContent = q;
+  copy(q, 'prompt copied');
+  $('#cp').onclick = () => copy(q, 'prompt copied');
+  $('#cancel').onclick = paint;
+  $('#go').onclick = () => {
+    const r = S.applyAnswer(st, task, $('#ans').value);
+    if (!r.ok) return cmsg(r.why, 'bad');
+    cmsg('split into ' + (r.added + 1) + ' chapters', 'good'); setTimeout(paint, 700);
+  };
+}
+function cmsg(t, k) { const e = $('#cmsg'); if (e) { e.textContent = t; e.className = 'msg ' + (k || ''); } }
+async function copy(text, note) {
+  try { await navigator.clipboard.writeText(text); cmsg(note || 'copied', 'good'); }
+  catch (e) { cmsg('This browser blocked the clipboard — select the prompt above and copy it.', 'bad'); }
+}
+
+/* exercises */
+$('#ex_add').onclick = () => {
+  const p = st.plates.filter(q => !q.cover)[Number($('#ex_plate').value)];
+  if (!p) return; const q = $('#ex_q').value.trim();
+  if (!q) { $('#ex_msg').textContent = 'The question is empty.'; return; }
+  const kind = $('#ex_kind').value;
+  const opts = $('#ex_opts').value.split('\n').map(x => x.trim()).filter(Boolean);
+  const a = $('#ex_a').value.trim();
+  if (kind === 'mcq' && opts.length < 2) { $('#ex_msg').textContent = 'Multiple choice needs at least two options.'; return; }
+  if (kind !== 'long' && !a) { $('#ex_msg').textContent = 'Give the answer, so the reader can be marked here.'; return; }
+  if (kind === 'mcq' && !opts.includes(a)) { $('#ex_msg').textContent = 'The answer must be one of the options, exactly.'; return; }
+  p.exercises = p.exercises || [];
+  p.exercises.push({ kind, q, options: kind === 'mcq' ? opts : undefined, answer: kind === 'long' ? undefined : a });
+  $('#ex_q').value = $('#ex_opts').value = $('#ex_a').value = ''; $('#ex_msg').textContent = 'added';
+  exTable(); check();
+};
+function exTable() {
+  const rows = [];
+  st.plates.filter(p => !p.cover).forEach(p => (p.exercises || []).forEach((e, i) =>
+    rows.push('<tr><td>' + (p.title || p.file) + '</td><td class=mono>' + e.kind + '</td><td>' +
+      e.q.replace(/</g,'&lt;') + '</td><td><button class=ghost data-p="' + p.slug + '" data-i="' + i +
+      '" style="padding:.25rem .45rem;font-size:.58rem">remove</button></td></tr>')));
+  $('#ex_table').innerHTML = rows.length
+    ? '<thead><tr><th>chapter</th><th>kind</th><th>question</th><th></th></tr></thead><tbody>' + rows.join('') + '</tbody>'
+    : '';
+  $('#ex_table').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const p = st.plates.find(q => q.slug === b.dataset.p); p.exercises.splice(Number(b.dataset.i), 1); exTable(); });
+}
+
+/* lockup + export */
+function msgDoc(t) { const e = $('#doc'); e.dataset.note = t; check(); }
+function check() {
+  const f = S.doctor(st), note = $('#doc').dataset.note;
+  $('#doc').innerHTML = (f.length
+    ? '<ul class=d>' + f.map(x => '<li>' + x.replace(/</g,'&lt;') + '</li>').join('') + '</ul>'
+    : '<p class=pass>The forme is locked. Export the payload.</p>') +
+    (note ? '<p class=note>' + note.replace(/</g,'&lt;') + '</p>' : '');
+  $('#exp').disabled = f.length > 0;
+  const n = S.nextTask(st);
+  $('#next').textContent = n
+    ? 'Next in the cycler: ' + n.step.title + (n.plate ? ' — ' + (n.plate.title || n.plate.file) : '')
+    : (f.length ? '' : 'Export, then set it: matba import <slug> payload.zip, or unzip it over your project.');
+}
+$('#exp').onclick = () => {
+  const images = [];
+  const cov = st.plates.find(p => p.cover);
+  if (cov) images.push(['cover.png', imgs.get(cov.file)]);
+  const seen = new Set();
+  for (const p of st.plates) {
+    if (p.cover) continue;
+    const name = (p.imageName || p.slug) + '.png';
+    if (seen.has(name)) continue; seen.add(name);
+    const b = imgs.get(p.file); if (b) images.push([name, b]);
+  }
+  const zip = S.makeZip(S.payloadFiles(st, images));
+  dl(new Blob([zip], { type: 'application/zip' }),
+     ((st.book.repo || 'book').split('/')[1] || 'book') + '-payload.zip');
+};
+$('#save').onclick = () => dl(new Blob([JSON.stringify({ book: st.book, parts: st.parts,
+  plates: st.plates }, null, 2)], { type: 'application/json' }), 'matba-working.json');
+$('#load').onclick = () => $('#loadf').click();
+$('#loadf').onchange = async e => {
+  const t = JSON.parse(await e.target.files[0].text());
+  Object.assign(st.book, t.book || {}); st.parts = t.parts || [];
+  st.plates = (t.plates || []).map(p => Object.assign({ exercises: [] }, p));
+  for (const k of ['title','subtitle','repo','author','affiliation','orcid','description'])
+    if ($('#b_' + k)) $('#b_' + k).value = st.book[k] || '';
+  msgDoc('Working file opened. Re-drop the images to see them; the text is all here.');
+  paint();
+};
+function dl(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+if (window.top !== window.self) $('#where').textContent = 'embedded · still runs entirely in your browser';
+paint();
+</script></body></html>

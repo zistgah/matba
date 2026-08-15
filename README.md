@@ -1,8 +1,5 @@
 # matba (مطبع) — the press
 
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21934021.svg)](https://doi.org/10.5281/zenodo.21934021)
-
 One tool for the whole path: **posters in → book out, sealed, pushed, minted.**
 Local-first, single file, **stdlib only**. No install, no dependencies, no backend.
 
@@ -77,6 +74,37 @@ absent remote is created and verified, staging writes nothing upstream, template
 swept, a second push is a genuine no-op, a wrong gate word aborts and records nothing, the gate
 still bites when three wrong lines precede the right one, the DOI is parsed from misty's own
 result and recorded back into both files, and the manifest verifies after the reseal.
+
+## The composing room — static, no install
+
+`docs/studio.html` is the whole authoring path as one static page. It works from GitHub Pages, from
+matba's local server at `/studio`, or inside an iframe on any site. Nothing is uploaded and no
+account or key is needed.
+
+- **Load and sort.** Drop images or a folder. Each is hashed in the tab; identical bytes collapse
+  onto one keeper that says *same bytes as …* rather than vanishing. Sort by name, group by part,
+  reorder, pick the cover, or paste a table.
+- **The cycler.** Copy a prompt, paste it into whichever AI you use with the plate, copy the answer,
+  and press **Apply and copy next** — one button files the answer and puts the following prompt on
+  your clipboard. Five steps: lead, explanation, title-and-topics as JSON, and the book abstract
+  once every chapter is titled. Prompts are data, so you can change them.
+- **Poster → chapters.** A plate carrying several panels splits into several chapters that share the
+  one image. The array comes back as JSON; a one-element array is a legitimate answer.
+- **Or call an endpoint.** Optional, and nothing is configured: you supply the URL, your key, the
+  request shape and where the reply lives. No provider is named or suggested anywhere.
+- **Exercises.** Multiple choice, fill-in-the-blank and long answers attach to a chapter and travel
+  with the book.
+- **Export.** A payload zip, written by a dependency-free zip writer and verified against Python's
+  `zipfile`. Bring it into a project with `matba import <slug> payload.zip`.
+
+## Exercises in the book
+
+`docs/js/exercises.js` is the `exercise` block for kitab. Multiple choice and fill-in-the-blank are
+marked in the reader with no server; **long answers are never auto-marked** — they hand off to your
+AI with the question and rubric. Timed runs are supported, and a run produces a certificate that
+hashes its own claim and says plainly what it is: evidence of the run, not of identity. Where
+completion goes is configuration — a pre-filled issue at a repository you name, a callback you name,
+or nowhere, which is the default.
 
 ## Seeding and minting matba itself
 

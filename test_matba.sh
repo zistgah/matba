@@ -131,4 +131,28 @@ p=json.load(urllib.request.urlopen('http://127.0.0.1:8791/api/project?slug=demo'
 assert p['doctor']==[] and len(p['project']['plates'])==5
 PY
 
+echo "== composing room (studio.js) =="
+if command -v node >/dev/null 2>&1 && [ -f "$SRC/test_studio.mjs" ]; then
+  ( cd "$SRC" && node test_studio.mjs ) >studio.log 2>&1 \
+    && { ok "studio: $(tail -1 studio.log | tr -d ' ')"; P=$((P+22)); } \
+    || { bad "studio suite failed"; tail -6 studio.log; }
+else ok "studio suite skipped (no node / not packaged)"; fi
+
+echo "== exercises =="
+if command -v node >/dev/null 2>&1 && [ -f "$SRC/test_exercises.mjs" ]; then
+  ( cd "$SRC" && node test_exercises.mjs ) >ex.log 2>&1 \
+    && { ok "exercises: $(tail -1 ex.log | tr -d ' ')"; P=$((P+7)); } \
+    || { bad "exercises suite failed"; tail -6 ex.log; }
+else ok "exercises suite skipped (no node / not packaged)"; fi
+
+echo "== static pages =="
+for f in docs/studio.html docs/js/studio.js docs/js/exercises.js; do
+  [ -s "$SRC/$f" ] && ok "shipped: $f" || bad "missing: $f"; done
+grep -q 'no vendor\|No provider is configured' "$SRC/docs/studio.html" \
+  && ok "the composing room names no provider" || bad "provider named"
+grep -qE 'chatgpt|gemini|claude|openai|anthropic' "$SRC/docs/js/studio.js" \
+  && bad "vendor named in studio.js" || ok "no vendor named in studio.js"
+grep -q 'window.top !== window.self' "$SRC/docs/studio.html" \
+  && ok "iframe-aware (says so when embedded)" || bad "not iframe-aware"
+
 echo; printf '  ===== %d pass, %d fail =====\n' "$P" "$F"; [ "$F" = 0 ]
